@@ -14,6 +14,7 @@ public class Config {
     public static Config INSTANCE = load();
 
     public boolean enabled = true;
+    public boolean debug = true; // подсказки над хотбаром
     public int delay = 1; // тиков между перлом и зарядом ветра (0 = в конце того же тика)
 
     public void fix() {

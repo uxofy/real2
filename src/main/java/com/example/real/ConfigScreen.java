@@ -25,8 +25,13 @@ public class ConfigScreen extends Screen {
         addRenderableWidget(new IntSlider(x, y + 26, w, "Задержка заряда (тиков)", 0, 20, c.delay,
                 v -> c.delay = v));
 
+        addRenderableWidget(Button.builder(Component.literal("Подсказки: " + (c.debug ? "да" : "нет")), b -> {
+            c.debug = !c.debug;
+            b.setMessage(Component.literal("Подсказки: " + (c.debug ? "да" : "нет")));
+        }).bounds(x, y + 52, w, 20).build());
+
         addRenderableWidget(Button.builder(Component.literal("Готово"), b -> onClose())
-                .bounds(x, y + 58, w, 20).build());
+                .bounds(x, y + 84, w, 20).build());
     }
 
     private static Component label(boolean on) {

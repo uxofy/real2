@@ -35,6 +35,13 @@ public class RealClient implements ClientModInitializer {
 
     private static boolean blocked = false;
 
+    private static void dbg(String msg) {
+        Minecraft mc = Minecraft.getInstance();
+        if (Config.INSTANCE.debug && mc.player != null) {
+            mc.player.displayClientMessage(Component.literal("Real: " + msg), true);
+        }
+    }
+
     /** Вызывается из миксина вместо обычного ПКМ. true = отменить ванильное использование. */
     public static boolean onUse() {
         Minecraft mc = Minecraft.getInstance();
@@ -44,6 +51,7 @@ public class RealClient implements ClientModInitializer {
         if (!(p.getMainHandItem().is(Items.WIND_CHARGE) && p.getOffhandItem().is(Items.ENDER_PEARL))) return false;
         if (pending || blocked) return true;
         blocked = true;
+        dbg("ПКМ перехвачен, кидаю перл");
         use(mc, InteractionHand.OFF_HAND); // afterUse сам запланирует заряд
         return true;
     }
@@ -58,6 +66,7 @@ public class RealClient implements ClientModInitializer {
         if (pearlInUse && result != null && result.consumesAction() && Config.INSTANCE.enabled) {
             pending = true;
             countdown = Config.INSTANCE.delay;
+            dbg("перл брошен, заряд через " + Config.INSTANCE.delay + " т.");
         }
         pearlInUse = false;
     }
@@ -102,11 +111,15 @@ public class RealClient implements ClientModInitializer {
         if (p == null || mc.gameMode == null) return;
 
         // кидаем только если заряд ветра именно в правой (основной) руке
-        if (!p.getMainHandItem().is(Items.WIND_CHARGE)) return;
+        if (!p.getMainHandItem().is(Items.WIND_CHARGE)) {
+            dbg("в правой руке нет заряда ветра");
+            return;
+        }
 
         firing = true;
         try {
             use(mc, InteractionHand.MAIN_HAND);
+            dbg("заряд ветра брошен");
         } finally {
             firing = false;
         }
