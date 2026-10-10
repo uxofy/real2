@@ -110,15 +110,20 @@ public class RealClient implements ClientModInitializer {
         Player p = mc.player;
         if (p == null || mc.gameMode == null) return;
 
-        // кидаем только если заряд ветра именно в правой (основной) руке
-        if (!p.getMainHandItem().is(Items.WIND_CHARGE)) {
-            dbg("в правой руке нет заряда ветра");
+        // заряд ветра должен быть в руке (любой), в хотбаре не ищем
+        InteractionHand hand;
+        if (p.getMainHandItem().is(Items.WIND_CHARGE)) {
+            hand = InteractionHand.MAIN_HAND;
+        } else if (p.getOffhandItem().is(Items.WIND_CHARGE)) {
+            hand = InteractionHand.OFF_HAND;
+        } else {
+            dbg("в руках нет заряда ветра");
             return;
         }
 
         firing = true;
         try {
-            use(mc, InteractionHand.MAIN_HAND);
+            use(mc, hand);
             dbg("заряд ветра брошен");
         } finally {
             firing = false;
