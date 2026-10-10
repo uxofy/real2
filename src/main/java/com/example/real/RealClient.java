@@ -9,7 +9,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Items;
 import org.lwjgl.glfw.GLFW;
@@ -34,9 +33,19 @@ public class RealClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(RealClient::endTick);
     }
 
-    /** Заглушка для совместимости со старой версией файла миксина. */
+    private static boolean blocked = false;
+
+    /** Вызывается из миксина вместо обычного ПКМ. true = отменить ванильное использование. */
     public static boolean onUse() {
-        return false;
+        Minecraft mc = Minecraft.getInstance();
+        if (!Config.INSTANCE.enabled || mc.player == null || mc.gameMode == null) return false;
+        Player p = mc.player;
+        // заряд ветра в правой руке + перл в левой -> ПКМ кидает перл, потом сам заряд
+        if (!(p.getMainHandItem().is(Items.WIND_CHARGE) && p.getOffhandItem().is(Items.ENDER_PEARL))) return false;
+        if (pending || blocked) return true;
+        blocked = true;
+        use(mc, InteractionHand.OFF_HAND); // afterUse сам запланирует заряд
+        return true;
     }
 
     // ---- вызывается из миксина ----
@@ -72,6 +81,8 @@ public class RealClient implements ClientModInitializer {
             mc.setScreen(new ConfigScreen());
         }
 
+        if (!mc.options.keyUse.isDown()) blocked = false;
+
         if (pending) {
             countdown--;
             if (countdown <= 0) fire(mc);
@@ -90,26 +101,12 @@ public class RealClient implements ClientModInitializer {
         Player p = mc.player;
         if (p == null || mc.gameMode == null) return;
 
+        // кидаем только если заряд ветра именно в правой (основной) руке
+        if (!p.getMainHandItem().is(Items.WIND_CHARGE)) return;
+
         firing = true;
         try {
-            if (p.getMainHandItem().is(Items.WIND_CHARGE)) {
-                use(mc, InteractionHand.MAIN_HAND);
-                return;
-            }
-            if (p.getOffhandItem().is(Items.WIND_CHARGE)) {
-                use(mc, InteractionHand.OFF_HAND);
-                return;
-            }
-            Inventory inv = p.getInventory();
-            for (int i = 0; i < 9; i++) {
-                if (inv.getItem(i).is(Items.WIND_CHARGE)) {
-                    int prev = inv.getSelectedSlot();
-                    inv.setSelectedSlot(i);
-                    use(mc, InteractionHand.MAIN_HAND);
-                    inv.setSelectedSlot(prev);
-                    return;
-                }
-            }
+            use(mc, InteractionHand.MAIN_HAND);
         } finally {
             firing = false;
         }
